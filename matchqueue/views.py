@@ -9,10 +9,11 @@ from matches.models import Match
 from matchqueue.models import Queue
 from matchqueue.serializers import QueueSerializer
 from members.models import Member
+from draft.models import Draft
 
 from permissions import IsAdminOrReadOnly
 
-from random import randint
+from random import randint, shuffle
 
 ROLES = [   
         'main_tank', 
@@ -139,21 +140,6 @@ def choose_captains(players):
         return 'Not enough or too many players'
 
 
-# Need to implement this as an endpoint eventually but idk HOW
-def draft_player(captain_team, captain_choice, blue_team, red_team, players_left):
-    players_left = players_left.remove(captain_choice)
-    if captain_team is 'blue':
-        blue_team.append(captain_choice)
-    else:
-        red_team.append(captain_choice)
-
-    return {        
-                'blue_team': blue_team,
-                'red_team': red_team,
-                'players_left': players_left
-    }
-
-
 def walk_players(players):
     in_queue = InQueue()
 
@@ -167,14 +153,13 @@ def walk_players(players):
     
     # If atleast 2 players are queued for each role in the queue..
     if in_queue.all_roles_filled():
-        # Randomly choose 2 captains from the first 12 players
-        captains = choose_captains(in_queue.get_match_players())
-        blue_captain = captains['blue']
-        red_captain = captains['red']
-
-        # TODO Start drafting stage
-        blue_team = Team( name='blue', players=[blue_captain] )
-        red_team = Team( name='red', players=[red_captain] )
+        # Drafting Stage
+        match_players = in_queue.get_match_players()
+        captains = choose_captains(match_players)
+        draft = create_draft(match_players, captains)
+        
+        blue_team = Team( name='blue', players=captains['blue'] )
+        red_team = Team( name='red', players=captains['red'] )
 
         # Show roster for both teams
         print(blue_team)
@@ -182,10 +167,9 @@ def walk_players(players):
         
         # Creat match object
         match = Match.objects.create(
-            blue_captain=blue_captain, red_captain=red_captain, map='Busan')
-        
-        match.blue_team.set(blue_team)
-        match.red_team.set(red_team)
+            blue_captain=captains['blue'], red_captain=captains['red'], map='Busan')
+        match.blue_team.set(blue_team.players)
+        match.red_team.set(red_team.players)
         match.save()
 
         # Remove assigned players from the queue.
@@ -198,6 +182,28 @@ def walk_players(players):
 
         # Send create match packet to match server with id match.id
         print(f'Not impemented: Send packet to match server with id of {match.id}')
+
+
+def create_draft(match_players, captains):
+    # match players =  all players in the match 
+    # player pool   =  players that are yet to be drafted
+    blue_captain = captains['blue']
+    red_captain = captains['red']
+    player_pool = match_players
+
+    # Remove captains from player pool
+    for player in captains.values():
+        player_pool.remove(player)
+    
+    # Randomly choose which captain gets first pick
+    shuffled_captains = captains.values().shuffle()
+    # Create draft object
+    return Draft.objects.create(
+        drafter=shuffled_captains[1],
+        blue_team=[blue_captain], 
+        red_team=[red_captain],
+        player_pool=player_pool 
+    )
 
 
 class QueueViewSet(viewsets.ModelViewSet):
@@ -242,10 +248,3 @@ class QueueViewSet(viewsets.ModelViewSet):
                 is_in_queue = False
 
         return Response(data={'is_in_queue': is_in_queue})
-
-    # TODO IDK how to implement this .-. 
-    # Would I have to make a new model and insert/update stuff in the database and have captains access it every turn?
-    # Is there a way to pass data from captain to captain without storing it in the DB?
-    @ action(detail=True, methods=['GET', 'POST'])
-    def draft_player(self, request, pk=None):
-        pass
