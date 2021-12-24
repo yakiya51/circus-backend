@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'matches.apps.MatchesConfig',
     'members.apps.MembersConfig',
     'matchqueue.apps.MatchqueueConfig',
-    'draft.apps.DraftConfig'
+    'matchdraft.apps.MatchDraftConfig'
 ]
 # REST_FRAMEWORK = {
 #     'DEFAULT_AUTHENTICATION_CLASSES': [

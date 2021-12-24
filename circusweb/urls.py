@@ -8,13 +8,13 @@ from rest_framework.authtoken import views
 from matches.views import MatchViewSet
 from matchqueue.views import QueueViewSet
 from members.views import MemberViewSet, AuthToken
-from draft.views import DraftViewSet
+from matchdraft.views import MatchDraftViewSet
 
 r = routers.DefaultRouter()
 r.register(r'members', MemberViewSet)
 r.register(r'matches', MatchViewSet)
 r.register(r'queue', QueueViewSet)
-r.register(r'draft', DraftViewSet)
+r.register(r'draft', MatchDraftViewSet)
 
 urlpatterns = [
     path('api/', include(r.urls)),
