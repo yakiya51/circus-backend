@@ -51,7 +51,6 @@ class MatchDraftViewSet(viewsets.ModelViewSet):
         except MatchDraft.DoesNotExist: 
             return Response({'message': 'The draft does not exist'}, status=status.HTTP_404_NOT_FOUND) 
 
-        # TODO Maybe check if current user is actuall the team captain that should currently be drafting
         data = request.data
         serializer = MatchDraftSerializer(instance=draft, data=data)
         if serializer.is_valid():
